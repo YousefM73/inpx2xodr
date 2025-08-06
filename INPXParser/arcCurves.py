@@ -2,12 +2,12 @@
 
 __all__ = ['getArcEndposition', 'getArcCurvatureAndLength', 'getArcCurvatureAndLength2Point', 'endTurn2LaneStreet']
 
-#Cell
+
 from math import floor, pi
 import numpy as np
 from .utils import giveHeading, distance,schnittpunkt,getXYPositionFromLineLength,getPositiveHeading,getDeltaHdg
 
-#Cell
+
 def getArcEndposition(curvature,length,xstart,ystart,hdg_start):
     deltaHdg = curvature*length
     hdg_end = deltaHdg + hdg_start
@@ -31,7 +31,7 @@ def getArcEndposition(curvature,length,xstart,ystart,hdg_start):
         y_end = np.sin(hdg_start)*length + ystart
     return x_end, y_end, getPositiveHeading(hdg_end)
 
-#Cell
+
 def getArcCurvatureAndLength(xstart,ystart,x_end,y_end, x_curveMid, y_curveMid, maxerror = 0.8, minradius = 0.5, iterations = 10):
     #print("Calculating Curve from {0},{1}  over {2},{3} to {4},{5}".format(xstart,ystart,x_curveMid, y_curveMid,x_end,y_end))
     hdg_start = giveHeading(xstart,ystart,x_curveMid, y_curveMid)
@@ -95,7 +95,7 @@ def getArcCurvatureAndLength(xstart,ystart,x_end,y_end, x_curveMid, y_curveMid, 
     curvature = -deltaHdg / length
     return x1,y1,x2,y2,curvature,length
 
-#Cell
+
 def getArcCurvatureAndLength2Point(xstart,ystart,x_end,y_end, hdg_start, hdg_end):
     if abs(hdg_start - hdg_end) < 0.0001:
         if abs(giveHeading(xstart,ystart,x_end,y_end) - hdg_start) < 0.0001:
@@ -132,7 +132,7 @@ def getArcCurvatureAndLength2Point(xstart,ystart,x_end,y_end, hdg_start, hdg_end
 
     return {"ArcStartCoordinatesXY":[x_startL, y_startL],"ArcCurvatureLength":[curvature,length],"StartlineLength":startlineLength,"EndlineLength":endlineLength,"EndlineStartCoordinatesXY":[x_endL, y_endL]}
 
-#Cell
+
 def endTurn2LaneStreet(x_start,y_start, hdg_start, preTurnLength = 3.0):
     #create a hard 45° turn in 1 meter
     x_1, y_1, hdg_1 = getArcEndposition(-np.pi/(4.0*preTurnLength),preTurnLength,x_start,y_start,hdg_start)
