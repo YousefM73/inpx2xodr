@@ -333,14 +333,17 @@ def parse_inpx_file(inpx_file_path):
             
             # Get width from first lane (assuming all lanes have same width)
             if lane_elements and 'attributes' in lane_elements[0]:
-                lane_width = float(lane_elements[0]['attributes'].get('width', 3.5))
+                raw_width = float(lane_elements[0]['attributes'].get('width', 3.5))
                 
                 # In Vissim, lane width is typically per individual lane
                 # Validate that the width is reasonable for a single lane
-                if lane_width > 10.0:  # Likely total width, divide by number of lanes
-                    lane_width = lane_width / num_lanes
-                elif lane_width < 0.5:  # Too narrow, use default
-                    lane_width = 3.5 if not is_sidewalk else 2.0
+                if raw_width > 10.0:  # Likely total width, divide by number of lanes
+                    lane_width = raw_width / num_lanes
+                else:
+                    # PRESERVE small widths - don't override them!
+                    # These will be filtered out later if they're too small for road use
+                    # This allows road-line elements (0.1m) to be properly identified and excluded
+                    lane_width = raw_width
             
             # For connector links, parse fromLanes/toLanes connection data
             connector_lane_data = {}
@@ -387,8 +390,12 @@ def parse_inpx_file(inpx_file_path):
             else:
                 lane_width = parsed_width
         
-        # Skip non-sidewalk links with width less than 1 meter
+        # Skip non-sidewalk links with width less than 1 meter (road-line elements)
         if not is_sidewalk and lane_width < 1.0:
+            continue
+            
+        # Skip sidewalks that are extremely narrow (less than 0.5 meters)
+        if is_sidewalk and lane_width < 0.5:
             continue
         
         link_poly_pts = geometry.get('children', {}).get('linkPolyPts', {})

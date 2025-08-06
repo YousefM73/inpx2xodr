@@ -131,11 +131,17 @@ def fillNormalRoads(path = 'Test.xodr'):
                     print(f"ERROR processing connector 10139: {e}")
                 print(f"Warning: Error processing connector lane data for road {road.xodrID}: {e}")
         
-        # Only apply fallbacks for clearly invalid data
+        # Filter out roads with invalid width data - don't add them at all
         if individual_lane_width <= 0.0:  # Invalid/missing data
-            individual_lane_width = 2.0 if is_sidewalk else 3.5
+            if hasattr(road, 'tags'):
+                link_id = road.tags.get('vissim_link', 'unknown')
+                print(f"SKIPPING Link {link_id}: Invalid width data ({individual_lane_width}m)")
+            continue
         elif individual_lane_width < 0.5:  # Extremely narrow, likely invalid
-            individual_lane_width = 2.0 if is_sidewalk else 3.5
+            if hasattr(road, 'tags'):
+                link_id = road.tags.get('vissim_link', 'unknown')
+                print(f"SKIPPING Link {link_id}: Too narrow ({individual_lane_width}m)")
+            continue
         
         # Only add left lanes if there are any (opposite direction)
         for i in range(road.laneNumberOpposite):
@@ -163,14 +169,43 @@ def fillNormalRoads(path = 'Test.xodr'):
         lane_offset = 0.0
         if road.laneNumberOpposite == 0 and road.laneNumberDirection > 0:
             # When no left lanes, offset the centerline to position right lanes correctly
-            # Offset by half the total width of right lanes to center the road properly
             total_right_width = road.laneNumberDirection * individual_lane_width
             lane_offset = total_right_width / 2.0
 
         # Debug output for specific roads
         if hasattr(road, 'tags'):
             link_id = road.tags.get('vissim_link', 'unknown')
-            if link_id in ['10091', '10211', '81', '182', '183'] or (road.laneNumberDirection > 1 and int(link_id) <= 20):
+            
+            # Debug overlapping roads 62 and 177
+            if link_id in ['62', '177']:
+                print(f"OVERLAP DEBUG - Link {link_id}:")
+                print(f"  is_sidewalk: {is_sidewalk}")
+                print(f"  road.laneWidth: {road.laneWidth}")
+                print(f"  individual_lane_width: {individual_lane_width}")
+                print(f"  road.laneNumberDirection: {road.laneNumberDirection}")
+                print(f"  road.laneNumberOpposite: {road.laneNumberOpposite}")
+                print(f"  lane_offset: {lane_offset:.2f}m")
+                print(f"  road.xodrID: {road.xodrID}")
+                print(f"  total_right_width: {road.laneNumberDirection * individual_lane_width:.2f}m")
+                if hasattr(road, 'roadElements') and road.roadElements:
+                    for i, element in enumerate(road.roadElements):
+                        print(f"  roadElement[{i}]: x={element.get('xstart', 'N/A'):.2f}, y={element.get('ystart', 'N/A'):.2f}, heading={element.get('heading', 'N/A'):.4f}, length={element.get('length', 'N/A'):.2f}")
+                        if i >= 2:  # Limit output
+                            break
+                if hasattr(road, 'tags'):
+                    print(f"  road.tags: {road.tags}")
+                print(f"  Road centerline will be offset by {lane_offset:.2f}m from geometry")
+            
+            # Debug road processing for specific ranges  
+            if link_id != 'unknown':
+                try:
+                    link_num = int(link_id)
+                    if 270 <= link_num <= 280:
+                        print(f"DEBUG LINK {link_id}: vissim_link='{link_id}', laneWidth={road.laneWidth}, lanes={road.laneNumberDirection}, is_sidewalk={is_sidewalk}")
+                except ValueError:
+                    pass
+            
+            if link_id in ['10091', '10211', '81', '182', '183', '275'] or (road.laneNumberDirection > 1 and int(link_id) <= 20):
                 print(f"DEBUG Lane Width - Link {link_id}: original_vissim={road.laneWidth:.2f}m, final={individual_lane_width:.2f}m, lanes={road.laneNumberDirection}, type={lane_type}, offset={lane_offset:.2f}m")
             
             # Special debugging for wider roads to verify they're preserved
